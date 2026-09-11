@@ -622,23 +622,22 @@ The natural extension is **entropy-weighted self-consistency**: weight each chai
 
 **Formal definition:** Let sample \(i\) generate answer \(a_i\) with mean token entropy
 
-\[
+$$
 H_i = -\frac{1}{|T_i|}
 \sum_{t \in T_i} \sum_v p_t(v)\log p_t(v).
-\]
+$$
 
 The entropy-weighted vote for answer \(a\) is
 
-\[
-W(a) =
-\sum_{\{i : a_i = a\}} e^{-\beta H_i}.
-\]
+$$
+W(a) = \sum_{\{i : a_i = a\}} e^{-\beta H_i}.
+$$
 
 The final answer is
 
-\[
+$$
 \hat{a} = \arg\max_a W(a),
-\]
+$$
 
 where \(\beta\) is a parameter controlling sensitivity to entropy.
 
