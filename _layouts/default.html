@@ -801,12 +801,231 @@ We implemented the classroom pooling method late in the competition, which meant
 </code></pre>
 <hr>
 <h2 id="submission-score-history">Submission Score History</h2>
-<p>The full table of scored submissions, with the major architectural inflection points annotated. Scores are out of 50.</p>
-<div class="table-wrapper"><table><thead><tr><th>Version</th><th>Score</th><th>Notes</th></tr></thead><tbody><tr><td>V13</td><td>3</td><td>Qwen2.5 Math — baseline model, wrong fit for the task</td></tr><tr><td>V21</td><td>6</td><td>Early iteration on Qwen pipeline</td></tr><tr><td>V22</td><td>2</td><td>Regression</td></tr><tr><td>V23</td><td>3</td><td>Still on Qwen2.5, ceiling becoming clear</td></tr><tr><td><strong>V34</strong></td><td><strong>32</strong></td><td><strong>GPT-OSS 120B (Unsloth) introduced — +29 points</strong></td></tr><tr><td>V38</td><td>18</td><td>Jinja template edits attempting to improve reasoning format — −14</td></tr><tr><td>V40</td><td>21</td><td>Further jinja experiments, partial recovery</td></tr><tr><td><strong>V41</strong></td><td><strong>37</strong></td><td><strong>Classroom pooling introduced and dropped jinja experiments — +16 points</strong></td></tr><tr><td>V43</td><td>34</td><td>Pooling variant, slight regression</td></tr><tr><td><strong>V44</strong></td><td><strong>38</strong></td><td><strong>Personal best. <a href="https://www.kaggle.com/code/jarvis2026/aimo3vllm216-helper278">Submission notebook</a></strong></td></tr><tr><td>V45</td><td>35</td><td>Minor regression from V44</td></tr><tr><td>V47</td><td>10</td><td>JSON presets + enhanced profiling + jinja changes all at once — catastrophic −28</td></tr><tr><td>V48</td><td>31</td><td>Emergency revert, partial recovery</td></tr><tr><td>V49</td><td>37</td><td>Clean recovery, near-peak again</td></tr><tr><td>V50</td><td>33</td><td>Beam search + MCTS applied — no improvement over flat sampling</td></tr><tr><td>V51</td><td>33</td><td>Consolidation</td></tr><tr><td>V53</td><td>30</td><td>Presets JSON revision</td></tr><tr><td>V54</td><td>31</td><td>—</td></tr><tr><td>V55</td><td>33</td><td>RAG + profiling combined</td></tr><tr><td>V56</td><td>26</td><td>On-demand RAG tooling (Self-RAG / FLARE model) — −7</td></tr></tbody></table></div>
-<h3 id="reading-the-curve">Reading the Curve</h3>
-<blockquote>
-<p><strong>Score chart</strong>: An interactive version of the score chart is available at <a href="./aimo3-scores.html"><code>aimo3-scores.html</code></a> — open it in any browser; no build step required.</p>
-</blockquote>
+<div id="scores-app">
+<style>
+#scores-app * { box-sizing: border-box; margin: 0; padding: 0; }#scores-app { background: #0a0f1e; font-family: 'Inter', system-ui, sans-serif; color: #e2e8f0; padding: 32px 24px; }#scores-app .container { max-width: 860px; margin: 0 auto; }#scores-app .eyebrow { font-size: 11px; letter-spacing: .12em; color: #64748b; text-transform: uppercase; margin-bottom: 8px; }#scores-app h1 { font-size: 26px; font-weight: 800; color: #f8fafc; margin-bottom: 4px; }#scores-app .subtitle { font-size: 13px; color: #94a3b8; line-height: 1.6; margin-bottom: 28px; }#scores-app .legend { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 28px; }#scores-app .legend-item { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #94a3b8; }#scores-app .dot { width: 10px; height: 10px; border-radius: 50%; }#scores-app .chart-wrap { position: relative; background: #0f172a; border-radius: 10px; padding: 20px; margin-bottom: 32px; }#scores-app .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 32px; }#scores-app .stat { background: #0f172a; border-radius: 8px; padding: 14px 16px; }#scores-app .stat-val { font-size: 22px; font-weight: 800; }#scores-app .stat-label { font-size: 11px; color: #64748b; margin-top: 2px; }#scores-app .stat-sub { font-size: 11px; color: #475569; margin-top: 4px; }#scores-app table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 24px; }#scores-app th { text-align: left; padding: 8px 12px; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid #1e293b; }#scores-app td { padding: 9px 12px; border-bottom: 1px solid #1a2235; vertical-align: top; }#scores-app tr:hover td { background: #111827; }#scores-app .v-tag { font-weight: 700; }#scores-app .score-cell { font-weight: 600; }#scores-app .peak-row td { background: #0d1f0d; }#scores-app .peak-row .score-cell { color: #22c55e; }#scores-app .drop-note { color: #ef4444; }#scores-app .gain-note { color: #a78bfa; }#scores-app .model-note { color: #3b82f6; }#scores-app .footer { font-size: 11px; color: #334155; text-align: center; margin-top: 24px; }#scores-app .footer a { color: #475569; text-decoration: none; }
+
+  #scores-app {
+    background: #0a0f1e;
+    border-radius: 12px;
+    padding: 28px 24px;
+    margin: 1rem 0;
+    overflow-x: auto;
+  }
+  #scores-app .container { max-width: none; }
+
+  /* Swipeable chart/table panels */
+  #scores-app .view-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  #scores-app .view-tab {
+    flex: 1;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    color: #94a3b8;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  #scores-app .view-tab.active {
+    background: #1d4ed8;
+    border-color: #3b82f6;
+    color: #f8fafc;
+  }
+  #scores-app .view-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  #scores-app .view-track::-webkit-scrollbar { display: none; }
+  #scores-app .view-panel {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+  #scores-app .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Fixed-height chart wrapper: canvas fills it absolutely regardless of flex/snap layout */
+  #scores-app .chart-wrap { position: relative; height: 460px; }
+  @media (max-width: 640px) {
+    #scores-app .chart-wrap { height: 320px; padding: 12px; }
+  }
+
+  /* Dark-theme table overrides (page CSS sets light row/header backgrounds) */
+  #scores-app table thead th { background: #0f172a; color: #64748b; border-color: #1e293b; }
+  #scores-app table tbody td { background: transparent; color: #e2e8f0; border-color: #1a2235; }
+  #scores-app table tbody tr { background: transparent; }
+  #scores-app table tbody tr:nth-child(even) { background: transparent; }
+  #scores-app table tbody tr:nth-child(even) td { background: #0d1526; }
+  #scores-app table tbody tr:hover td { background: #111827; }
+  #scores-app table tbody tr.peak-row td,
+  #scores-app table tbody tr.peak-row:nth-child(even) td { background: #0d1f0d; color: #22c55e; }
+  #scores-app table tbody tr.peak-row:hover td { background: #0f2a12; }
+  #scores-app table td .v-tag { color: #e2e8f0; }
+
+</style>
+
+<div class="container scores-inner">
+  <div class="eyebrow">Kaggle · AIMO3 · 20 Scored Submissions</div>
+  <h1>Submission Score History</h1>
+  <p class="subtitle">Each point is a scored Kaggle submission. Highlighted versions mark pivotal architectural changes.</p>
+
+  <div class="view-tabs" role="tablist" aria-label="Chart or table view">
+    <button type="button" class="view-tab active" role="tab" aria-selected="true" data-view="chart">Chart</button>
+    <button type="button" class="view-tab" role="tab" aria-selected="false" data-view="table">Table</button>
+  </div>
+
+  <div class="view-track" id="view-track">
+
+  <div class="view-panel" id="panel-chart">
+  <div class="legend">
+    <div class="legend-item"><div class="dot" style="background:#3b82f6;box-shadow:0 0 6px #3b82f6"></div>Model change</div>
+    <div class="legend-item"><div class="dot" style="background:#a78bfa;box-shadow:0 0 6px #a78bfa"></div>Architecture gain</div>
+    <div class="legend-item"><div class="dot" style="background:#22c55e;box-shadow:0 0 6px #22c55e"></div>Personal best</div>
+    <div class="legend-item"><div class="dot" style="background:#ef4444;box-shadow:0 0 6px #ef4444"></div>Score drop</div>
+    <div class="legend-item"><div class="dot" style="background:#94a3b8"></div>Iteration</div>
+  </div>
+
+  <div class="chart-wrap">
+    <canvas id="scoreChart" height="320"></canvas>
+  </div>
+  <div class="stats">
+    <div class="stat" style="border-top:2px solid #3b82f6">
+      <div class="stat-val" style="color:#3b82f6">+29</div>
+      <div class="stat-label">Biggest single gain</div>
+      <div class="stat-sub">V23 → V34  Model switch to GPT-OSS 120B</div>
+    </div>
+    <div class="stat" style="border-top:2px solid #ef4444">
+      <div class="stat-val" style="color:#ef4444">−28</div>
+      <div class="stat-label">Biggest single loss</div>
+      <div class="stat-sub">V45 → V47  Three simultaneous changes</div>
+    </div>
+    <div class="stat" style="border-top:2px solid #22c55e">
+      <div class="stat-val" style="color:#22c55e">38/50</div>
+      <div class="stat-label">Personal best</div>
+      <div class="stat-sub">V44  Pooling + clean TIR loop</div>
+    </div>
+    <div class="stat" style="border-top:2px solid #ef4444">
+      <div class="stat-val" style="color:#ef4444">−7</div>
+      <div class="stat-label">RAG impact</div>
+      <div class="stat-sub">V55 → V56  On-demand RAG hurt, not helped</div>
+    </div>
+  </div>
+
+
+  </div><!-- /panel-chart -->
+
+  <div class="view-panel" id="panel-table">
+    <div class="table-scroll">
+      <table><thead><tr><th>Version</th><th>Score</th><th>Notes</th></tr></thead><tbody><tr><td>V13</td><td>3</td><td>Qwen2.5 Math — baseline model, wrong fit for the task</td></tr><tr><td>V21</td><td>6</td><td>Early iteration on Qwen pipeline</td></tr><tr><td>V22</td><td>2</td><td>Regression</td></tr><tr><td>V23</td><td>3</td><td>Still on Qwen2.5, ceiling becoming clear</td></tr><tr><td><strong>V34</strong></td><td><strong>32</strong></td><td><strong>GPT-OSS 120B (Unsloth) introduced — +29 points</strong></td></tr><tr><td>V38</td><td>18</td><td>Jinja template edits attempting to improve reasoning format — −14</td></tr><tr><td>V40</td><td>21</td><td>Further jinja experiments, partial recovery</td></tr><tr><td><strong>V41</strong></td><td><strong>37</strong></td><td><strong>Classroom pooling introduced and dropped jinja experiments — +16 points</strong></td></tr><tr><td>V43</td><td>34</td><td>Pooling variant, slight regression</td></tr><tr><td><strong>V44</strong></td><td><strong>38</strong></td><td><strong>Personal best. <a href="https://www.kaggle.com/code/jarvis2026/aimo3vllm216-helper278">Submission notebook</a></strong></td></tr><tr><td>V45</td><td>35</td><td>Minor regression from V44</td></tr><tr><td>V47</td><td>10</td><td>JSON presets + enhanced profiling + jinja changes all at once — catastrophic −28</td></tr><tr><td>V48</td><td>31</td><td>Emergency revert, partial recovery</td></tr><tr><td>V49</td><td>37</td><td>Clean recovery, near-peak again</td></tr><tr><td>V50</td><td>33</td><td>Beam search + MCTS applied — no improvement over flat sampling</td></tr><tr><td>V51</td><td>33</td><td>Consolidation</td></tr><tr><td>V53</td><td>30</td><td>Presets JSON revision</td></tr><tr><td>V54</td><td>31</td><td>—</td></tr><tr><td>V55</td><td>33</td><td>RAG + profiling combined</td></tr><tr><td>V56</td><td>26</td><td>On-demand RAG tooling (Self-RAG / FLARE model) — −7</td></tr></tbody></table>
+    </div>
+  </div><!-- /panel-table -->
+
+  </div><!-- /view-track -->
+
+</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const labels = ['V13','V21','V22','V23','V34','V38','V40','V41','V43','V44','V45','V47','V48','V49','V50','V51','V53','V54','V55','V56'];
+const scores = [3,6,2,3,32,18,21,37,34,38,35,10,31,37,33,33,30,31,33,26];
+const types  = ['model',null,null,null,'model','drop',null,'gain',null,'peak',null,'drop',null,null,null,null,null,null,null,'drop'];
+
+const COLOR = { peak:'#22c55e', model:'#3b82f6', gain:'#a78bfa', drop:'#ef4444', null:'#64748b' };
+const pointColors = types.map(t => COLOR[t] || COLOR.null);
+const pointRadius = types.map(t => t ? 7 : 4);
+
+const ctx = document.getElementById('scoreChart').getContext('2d');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [{
+      data: scores,
+      borderColor: '#334155',
+      borderWidth: 2,
+      pointBackgroundColor: pointColors,
+      pointBorderColor: pointColors,
+      pointRadius,
+      pointHoverRadius: 9,
+      tension: 0.3,
+      fill: true,
+      backgroundColor: (ctx) => {
+        const g = ctx.chart.ctx.createLinearGradient(0,0,0,320);
+        g.addColorStop(0,'rgba(59,130,246,0.10)');
+        g.addColorStop(1,'rgba(59,130,246,0.00)');
+        return g;
+      }
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#0f172a',
+        borderColor: '#1e293b',
+        borderWidth: 1,
+        titleColor: '#f1f5f9',
+        bodyColor: '#94a3b8',
+        callbacks: {
+          label: (ctx) => ` ${ctx.raw} / 50`
+        }
+      },
+      annotation: { annotations: {
+        peak: { type:'line', yMin:38, yMax:38, borderColor:'rgba(34,197,94,0.4)', borderWidth:1, borderDash:[6,3] },
+        max:  { type:'line', yMin:50, yMax:50, borderColor:'rgba(51,65,85,0.5)',  borderWidth:1, borderDash:[4,4] }
+      }}
+    },
+    scales: {
+      x: { ticks:{ color:'#64748b', font:{size:11} }, grid:{ display:false }, border:{ color:'#1e293b' } },
+      y: { min:0, max:50, ticks:{ color:'#64748b', font:{size:11} }, grid:{ color:'#1e293b' }, border:{ display:false } }
+    }
+  }
+});
+</script>
+<script>
+// Tabs + swipe for the chart/table panels
+(function () {
+  var track = document.getElementById('view-track');
+  if (!track) return;
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('#scores-app .view-tab'));
+
+  function activate(i) {
+    tabs.forEach(function (t, j) {
+      t.classList.toggle('active', j === i);
+      t.setAttribute('aria-selected', String(j === i));
+    });
+  }
+
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () {
+      track.scrollTo({ left: i * track.clientWidth, behavior: 'smooth' });
+      activate(i);
+    });
+  });
+
+  var raf = null;
+  track.addEventListener('scroll', function () {
+    if (raf) return;
+    raf = requestAnimationFrame(function () {
+      raf = null;
+      var i = Math.round(track.scrollLeft / track.clientWidth);
+      if (i >= 0 && i < tabs.length) activate(i);
+    });
+  }, { passive: true });
+})();
+</script>
+
 <p><strong>V13–V23</strong>: The Qwen2.5 Math era. Scores between 2 and 6 reflect a model that can handle routine school-level arithmetic but lacks the reasoning depth and context length for olympiad-level problems. The ceiling was clearly below 10.</p>
 <p><strong>V34 jump (+29)</strong>: Switching to <a href="https://huggingface.co/unsloth/gpt-oss-120b">GPT-OSS 120B via Unsloth</a> is the single largest event in the score history. The model had been specifically trained and fine-tuned for competitive mathematics; the Unsloth quantization made it runnable within Kaggle's memory constraints without meaningful quality loss.</p>
 <p><strong>V38 crash (−14)</strong>: Editing the <code>.jinja</code> template files that control how the harmony library formats messages and system prompts. Jinja2 is a templating language; the harmony library uses <code>.jinja</code> files to define the exact token layout of each message type — how a system turn is opened and closed, where tool call results go, how the analysis channel is delimited. The idea was to add more explicit reasoning structure — step labels, forced verification prompts. In practice, the formatting changes clashed with the model's training distribution: it had seen and been trained on a specific message format, and departing from it degraded output quality sharply. The lesson was that the <code>.jinja</code> format is not a free parameter to tune — it is part of the model's implicit contract with its training data.</p>
