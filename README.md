@@ -227,7 +227,9 @@ allocated = min(
 
 ---
 
-### 5. Two-Layer RAG (`rag_system.py`, `build_omr_corpus.py`, `technique_corpus.py`) <a id="5-two-layer-rag-rag_systempybuild_omr_corpuspy-technique_corpuspy"></a>
+<a id="5-two-layer-rag-rag_systempybuild_omr_corpuspy-technique_corpuspy"></a>
+
+### 5. Two-Layer RAG (`rag_system.py`, `build_omr_corpus.py`, `technique_corpus.py`)
 
 **Layer 1 — Technique Cards**: 41 hand-crafted reference cards, each ≤600 tokens. The cards cover:
 
@@ -523,7 +525,9 @@ We implemented the classroom pooling method late in the competition, which meant
 
 ---
 
-## Competition Repository Structure <a id="repository-structure"></a>
+<a id="repository-structure"></a>
+
+## Competition Repository Structure
 
 ```
 AIMO3/
@@ -688,7 +692,9 @@ for text, metrics in results:
 
 ---
 
-## What the solution that I liked did ([ippeiogawa](https://www.kaggle.com/ippeiogawa)) <a id="what-the-solution-that-I-liked-did"></a>
+<a id="what-the-solution-that-I-liked-did"></a>
+
+## What the solution that I liked did ([ippeiogawa](https://www.kaggle.com/ippeiogawa))
 
 Their [published write-up](https://www.kaggle.com/competitions/ai-mathematical-olympiad-progress-prize-3/writeups/aimo3test) is worth reading in full. The key architectural difference from our approach was a more deliberate implementation of what we called the "classroom" model.
 
@@ -1081,6 +1087,8 @@ To make the GCG discussion concrete: here is the actual computation justifying i
 **Why we didn't pursue it**: The computation requires running GCG on the Unsloth-quantized weights directly (not through vLLM), which is a substantial engineering effort separate from the competition notebook. GCG on a 120B model is also slow — at 5,000 GCG steps with a batch size of 16, you're looking at multiple days of GPU time for the optimisation itself. The resulting prefix is also non-interpretable, making it impossible to debug if it causes unexpected model behaviour.
 
 **The right scope for GCG here**: Not the full system prompt. Just `TIR_PREFERENCE_PROMPT` — the 200-token block listing available libraries and best practices. This is the part most likely to be compressible to a shorter equivalent because it contains structured, repetitive information (library names, function signatures) that a gradient-based search could represent more compactly. A 50-token GCG replacement for a 200-token library listing is realistic and would save ~60 minutes per submission. Interpretability is less critical for this section because it is reference material rather than reasoning guidance.
+
+---
 
 ---
 
