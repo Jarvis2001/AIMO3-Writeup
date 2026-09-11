@@ -15,6 +15,10 @@
     box-sizing: border-box;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   html,
   body {
     margin: 0;
@@ -233,18 +237,188 @@
   svg {
     max-width: 100%;
   }
+
+  /* ===== Floating sidebar TOC layout ===== */
+  main.markdown-export {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 40px;
+    max-width: 1400px;
+  }
+
+  .toc-sidebar {
+    flex: 0 0 280px;
+    width: 280px;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    padding: 14px 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+
+  .toc-sidebar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .toc-sidebar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+
+  .toc-sidebar h2 {
+    font-size: 0.95rem;
+    margin: 0 0 0.6em;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+  }
+
+  .toc-sidebar ol {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+  }
+
+  .toc-sidebar li {
+    margin: 0.18rem 0;
+  }
+
+  .toc-sidebar li > ul {
+    padding-left: 14px;
+    margin: 0.1rem 0 0.25rem;
+    list-style: none;
+  }
+
+  .toc-sidebar a {
+    display: block;
+    padding: 2px 8px;
+    margin: 0 -8px;
+    border-radius: 6px;
+    color: #334155;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .toc-sidebar a:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+
+  .toc-sidebar a.active {
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-weight: 600;
+  }
+
+  .main-content {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 960px;
+  }
+
+  /* Center the page when the viewport is too narrow for the sidebar */
+  @media (max-width: 1100px) {
+    main.markdown-export {
+      gap: 24px;
+    }
+    .toc-sidebar {
+      flex-basis: 220px;
+      width: 220px;
+    }
+  }
+
+  @media (max-width: 860px) {
+    main.markdown-export {
+      flex-direction: column;
+    }
+    .toc-sidebar {
+      position: static;
+      width: 100%;
+      flex-basis: auto;
+      max-height: 320px;
+    }
+  }
+
+  /* ===== Mobile polish ===== */
+  .toc-toggle {
+    display: none;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    background: none;
+    border: 0;
+    padding: 10px 4px;
+    font: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+  }
+  .toc-chevron {
+    display: inline-block;
+    transition: transform 0.2s ease;
+    font-size: 0.85em;
+  }
+
+  @media (max-width: 860px) {
+    body {
+      padding: 20px 16px;
+    }
+    .toc-sidebar {
+      font-size: 14.5px;
+      max-height: none;
+    }
+    /* Larger tap targets */
+    .toc-sidebar a {
+      padding: 9px 10px;
+      margin: 0 -10px;
+      white-space: normal;
+    }
+    /* Collapsible TOC */
+    .toc-sidebar h2 {
+      margin: 0;
+    }
+    .toc-toggle {
+      display: flex;
+    }
+    .toc-sidebar.collapsed #toc-list {
+      display: none;
+    }
+    .toc-sidebar.collapsed .toc-chevron {
+      transform: rotate(-90deg);
+    }
+  }
+
+  @media (max-width: 480px) {
+    body {
+      padding: 14px 12px;
+      font-size: 14.5px;
+    }
+    .toc-sidebar {
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+    h1 { font-size: 1.6rem; }
+    h2 { font-size: 1.35rem; }
+    h3 { font-size: 1.15rem; }
+  }
 </style>
   </head>
   <body>
     <main class="markdown-export">
-<h1>AIMO3 Competition Write-Up</h1>
-<blockquote>
-<p><strong>AI Mathematical Olympiad – Progress Prize 3</strong><br>
-Final score: <strong>41.5/50</strong><br>
-Stack: GPT-OSS 120B (Unsloth-quantized) · vLLM · Jupyter kernels · Two-layer RAG</p>
-</blockquote>
-<hr>
-<h2 id="table-of-contents">Table of Contents</h2>
+<nav class="toc-sidebar" aria-label="Table of Contents">
+<div class="toc-inner">
+<h2 id="table-of-contents"><button type="button" class="toc-toggle" aria-expanded="true" aria-controls="toc-list">Table of Contents<span class="toc-chevron" aria-hidden="true">▾</span></button></h2>
+<div id="toc-list">
 <ol>
 <li><a href="#overview">Overview</a></li>
 <li><a href="#the-core-idea-tool-integrated-reasoning-tir">The Core Idea: Tool-Integrated Reasoning</a></li>
@@ -287,7 +461,19 @@ Stack: GPT-OSS 120B (Unsloth-quantized) · vLLM · Jupyter kernels · Two-layer 
 <li><a href="#appendix-h-the-experiments-that-didnt-ship">Appendix H: The Experiments That Didn't Ship</a></li>
 <li><a href="#references">References</a></li>
 </ol>
+</div>
+</div>
+</nav>
+<div class="main-content">
+
+<h1>AIMO3 Competition Write-Up</h1>
+<blockquote>
+<p><strong>AI Mathematical Olympiad – Progress Prize 3</strong><br>
+Final score: <strong>41.5/50</strong><br>
+Stack: GPT-OSS 120B (Unsloth-quantized) · vLLM · Jupyter kernels · Two-layer RAG</p>
+</blockquote>
 <hr>
+
 <h2 id="overview">Overview</h2>
 <p>The <a href="https://www.kaggle.com/competitions/ai-mathematical-olympiad-progress-prize-3">AI Mathematical Olympiad Progress Prize 3 (AIMO3)</a> asked competitors to build a system that could solve 50 competition-level mathematics problems — think AMC 12, AIME, and IMO difficulty — and return an integer answer between 0 and 99,999 for each. No partial credit, no proof required, just the right number.</p>
 <p>Every problem has a unique integer answer in that range. The competition format reflects the practical reality that a correct answer demonstrates genuine mathematical understanding without requiring natural language proof verification, which would be far harder to automate fairly.</p>
@@ -1040,7 +1226,8 @@ print(answer)  # integer in [0, 99999]
 }
 
 </code></pre>
-    </main>
+    </div>
+</main>
   
 <script>
 // The original export embedded KaTeX fonts but not katex.css, so formulas render
@@ -1095,6 +1282,67 @@ window.MathJax = {
 };
 </script>
 <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+
+<script>
+// Scroll-spy: highlight the TOC entry of the section currently in view
+(function () {
+  var links = Array.prototype.slice.call(
+    document.querySelectorAll('.toc-sidebar a[href^="#"]'));
+  var map = {};
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) map[id] = a;
+  });
+  var ids = Object.keys(map);
+
+  function onScroll() {
+    var pos = window.scrollY + 120;
+    var current = null;
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el && el.offsetTop <= pos) current = ids[i];
+    }
+    links.forEach(function (a) { a.classList.remove('active'); });
+    if (current) {
+      var link = map[current];
+      link.classList.add('active');
+      // keep the active entry visible inside the sidebar
+      var sb = document.querySelector('.toc-sidebar');
+      var lr = link.getBoundingClientRect(), sr = sb.getBoundingClientRect();
+      if (lr.top < sr.top + 8 || lr.bottom > sr.bottom - 8) {
+        link.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('DOMContentLoaded', onScroll);
+  onScroll();
+})();
+</script>
+
+
+<script>
+// Collapsible TOC on mobile
+(function () {
+  var nav = document.querySelector('.toc-sidebar');
+  var btn = nav && nav.querySelector('.toc-toggle');
+  if (!btn) return;
+  function isMobile() { return window.matchMedia('(max-width: 860px)').matches; }
+  function sync() {
+    // Start collapsed on mobile, expanded on desktop
+    nav.classList.toggle('collapsed', isMobile());
+    btn.setAttribute('aria-expanded', String(!isMobile()));
+  }
+  btn.addEventListener('click', function () {
+    var collapsed = nav.classList.toggle('collapsed');
+    btn.setAttribute('aria-expanded', String(!collapsed));
+  });
+  window.addEventListener('resize', sync);
+  sync();
+})();
+</script>
 
 </body>
 </html>
