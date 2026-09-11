@@ -1,7 +1,7 @@
 # AIMO3 Competition Write-Up: Building a Math Olympiad Solver
 
 > **AI Mathematical Olympiad – Progress Prize 3**  
-> Final score: **38/50** (personal best, tied with our previous record)  
+> Final score: **41.5/50**
 > Stack: GPT-OSS 120B (Unsloth-quantized) · vLLM · Jupyter kernels · Two-layer RAG
 
 ---
@@ -54,7 +54,7 @@ The [AI Mathematical Olympiad Progress Prize 3 (AIMO3)](https://www.kaggle.com/c
 
 Every problem has a unique integer answer in that range. The competition format reflects the practical reality that a correct answer demonstrates genuine mathematical understanding without requiring natural language proof verification, which would be far harder to automate fairly.
 
-We finished with **38/50**(Public) and **41.5** final score, our personal best. Several experimental approaches came close to pushing past that ceiling — the classroom pooling method in particular was theoretically sound and inspired by what the eventual top solutions used — but never cleared it cleanly in a live submission. This write-up documents everything we built, what worked, what we experimented with and abandoned, and the lessons we'd carry forward.
+We finished with **38/50**(Public) and a **41.5** final score, our personal best. Several experimental approaches came close to pushing past that ceiling — the classroom pooling method in particular was theoretically sound and inspired by what the eventual top solutions used — but never cleared it cleanly in a live submission. This write-up documents everything we built, what worked, what we experimented with and abandoned, and the lessons we'd carry forward.
 
 ---
 
@@ -110,7 +110,7 @@ This is the heart of the system. Each call to `inference()` spins up k=8 paralle
 **The streaming loop** runs up to `max_iter=128` iterations per sample. Each iteration:
 1. Renders the current conversation using the harmony encoding
 2. Checks remaining tokens (stops if < 512 remain)
-3. Calls vLLM completions API with streaming on
+3. Calls the vLLM completions API with streaming on
 4. Collects token IDs and logprobs chunk by chunk
 5. Parses new messages from the completed token buffer
 6. Routes based on `last_message.recipient`: `python` → kernel, `rag_search` → RAG tool, `final` → answer extraction
@@ -134,9 +134,9 @@ elif entropy > 3.0: score *= 0.9
 
 If one answer captures ≥55% of total weight, it wins immediately. This skips GenSelect on the majority of contested problems.
 
-**GenSelect** feeds solution excerpts (head + last Python block + tail, capped at 2000 chars) to the model with the judge prompt pre-filled with `BEST: `. A three-tier parse handles: explicit `BEST: N`, bare digit continuation, and last-mentioned candidate number as fallback. The fallback then uses quality scoring (python_calls − 2×python_errors + confidence×2 − entropy×0.3) rather than insertion order.
+**GenSelect** feeds solution excerpts (head + last Python block + tail, capped at 2000 chars) to the model with the judge prompt pre-filled with `BEST: `. A three-tier parse handles: explicit `BEST: N`, bare digit continuation, and the last-mentioned candidate number as a fallback. The fallback then uses quality scoring (python_calls − 2×python_errors + confidence×2 − entropy×0.3) rather than insertion order.
 
-**On-demand RAG nudges**: At 30 and 80 Python calls without an answer, a system message is injected suggesting the model call `rag_search`. This is a soft nudge, not a forced call — the model can ignore it if it thinks it's close. Empirically, the 30-call nudge was more useful than the 80-call one (by 80 calls the model is usually either deeply committed to a wrong approach or genuinely stuck).
+**On-demand RAG nudges**: At 30 and 80 Python calls without an answer, a system message is injected suggesting the model call `rag_search`. This is a soft nudge, not a forced call — the model can ignore it if it thinks it's close. Empirically, the 30-call nudge was more useful than the 80-call one (by 80 calls, the model is usually either deeply committed to a wrong approach or genuinely stuck).
 
 ---
 
@@ -185,7 +185,7 @@ and get `{2: 3, 3: 2, 5: 1}` back, rather than silence followed by confusion.
 
 The vLLM server is launched with a two-tier fallback:
 
-**Tier 1 — n-gram speculative decoding**: Drafts tokens by matching n-gram patterns in the prompt and context. In mathematical text this works surprisingly well because LaTeX expressions, variable names, and operator sequences repeat heavily. Configuration:
+**Tier 1 — n-gram speculative decoding**: Drafts tokens by matching n-gram patterns in the prompt and context. In mathematical text, this works surprisingly well because LaTeX expressions, variable names, and operator sequences repeat heavily. Configuration:
 - `num_speculative_tokens = 5` — tokens drafted per step
 - `ngram_prompt_lookup_max = 4` — longest n-gram to match
 - Theoretical throughput improvement: ~1.3–1.6×
@@ -199,7 +199,7 @@ Other notable vLLM flags:
 - `--max-num-seqs 256` — allows 8 parallel samples without queuing
 - `--no-enable-prefix-caching` — disabled because our seeds produce diverse prompts; prefix caching would waste memory on prompts that never repeat
 
-**Server pre-flight**: Before constructing the `Inferencer`, we probe the vLLM port with a raw socket connection, retrying 3 times with 10-second waits. This catches the race condition where vLLM reports ready via HTTP but the actual model weights haven't fully loaded onto GPU.
+**Server pre-flight**: Before constructing the `Inferencer`, we probe the vLLM port with a raw socket connection, retrying 3 times with 10-second waits. This catches the race condition where vLLM reports ready via HTTP but the actual model weights haven't fully loaded onto the GPU.
 
 ---
 
@@ -223,7 +223,7 @@ allocated = min(
 
 **Mutable deadline handles**: The `DeadlineHandle` wraps a float behind a lock. When the background watcher thread decides to extend, it calls `handle.extend(seconds)` and the stream loop — which is calling `deadline_handle.expired()` on every iteration — immediately sees the updated value without any synchronisation ceremony.
 
-**Extension mechanics**: The watcher thread polls every 15 seconds and checks whether any active sample has ≤90 seconds left. If so, it draws `extension_chunk=120s` from the bank and extends **all active samples simultaneously**. This is important — if you extend only the struggling sample, the others may finish and you've spent bank time on a problem that would have converged anyway. Extending all samples gives the entire population a chance to find the answer in the extra window.
+**Extension mechanics**: The watcher thread polls every 15 seconds and checks whether any active sample has ≤90 seconds left. If so, it draws `extension_chunk=120s` from the bank and extends **all active samples simultaneously**. This is important — if you extend only the struggling sample, the others may finish, and you've spent bank time on a problem that would have converged anyway. Extending all samples gives the entire population a chance to find the answer in the extra window.
 
 ---
 
@@ -233,7 +233,7 @@ allocated = min(
 
 | Category | Cards |
 |---|---|
-| Number Theory | LTE, p-adic/Legendre, CRT, Primitive roots, Quadratic residues, Pell equation, Vieta jumping, Möbius inversion, Floor/Dirichlet, Roots of unity filter, Hensel lifting, Gaussian integers, Polynomial congruences, Zsygmondy |
+| Number Theory | LTE, p-adic/Legendre, CRT, Primitive roots, Quadratic residues, Pell equation, Vieta jumping, Möbius inversion, Floor/Dirichlet, Roots of unity filter, Hensel lifting, Gaussian integers, Polynomial congruences, Zsigmondy |
 | Algebra | AM-GM, Cauchy-Schwarz/Titu, Schur, Newton identities, Generating functions, Matrix exponentiation, Functional equations, Telescoping/partial fractions, Lagrange interpolation, Strong induction |
 | Combinatorics | Pigeonhole, Burnside/necklace, Catalan/ballot, Stirling/Bell, Inclusion-exclusion, Stars-and-bars, Hall's theorem, Double counting, Probabilistic method, Ramsey theory, Turán |
 | Geometry | Power of a point/radical axis, Complex numbers, Ptolemy, Trig Ceva/barycentric, Inradius/circumradius, Circle inversion |
@@ -249,7 +249,7 @@ Each card includes a Python code block demonstrating the technique on a concrete
 
 Each chunk embeds only the **problem text**, not the solution — because at query time we only have the new problem to search with. The solution is included in the formatted output that gets injected.
 
-The FAISS index uses HNSW (M=32, efConstruction=200, efSearch=128) — at 20K vectors this gives ~1ms search with essentially perfect recall. Index building takes under 1 second at this scale.
+The FAISS index uses HNSW (M=32, efConstruction=200, efSearch=128) — at 20K vectors, this gives ~1ms search with essentially perfect recall. Index building takes under 1 second at this scale.
 
 **Embedder priority chain** with graceful degradation:
 1. **OpenVINO INT8**: fastest on Intel CPU (VNNI fused multiply-accumulate), ~3–5× faster than native PyTorch
@@ -340,7 +340,7 @@ The "USE WHEN" line is written in the imperative, matching the phrasing of compe
 
 ## Bug Log: What We Fixed and Why
 
-The `inferencer2.py` file has explicit `FIX-A` through `FIX-F` annotations and `solve_adv_kaggle2.py` has `Bug #1` through `Bug #6`. Here's the story behind the most significant ones:
+The `inferencer2.py` file has explicit `FIX-A` through `FIX-F` annotations, and `solve_adv_kaggle2.py` has `Bug #1` through `Bug #6`. Here's the story behind the most significant ones:
 
 **FIX-A: GenSelect max_tokens too low**  
 Original code set `max_tokens = int(api_timeout * 1.5)` where `api_timeout` was ~25 seconds. This gave the judge model only ~37 tokens — not enough to produce `BEST: 3` plus any analysis. Raised to `max(1024, min(4096, int(api_timeout * 12)))`.
@@ -364,10 +364,10 @@ Original design always pre-injected RAG context at the start of every problem. T
 The `USE_VLLM_API` environment variable defaulted to `'false'`, which meant the entire TIR infrastructure — the `Inferencer`, the kernel pool, everything — silently never launched. The code fell back to local vLLM without the Python tool. Fixed by making the API server launch unconditional.
 
 **Bug #6: Server process exit not detected**  
-`wait_for_vllm_api()` would loop for the full timeout even if the vLLM process had already crashed. Added `proc.poll()` check inside the polling loop — if the process has exited with a non-zero code, fail immediately rather than waiting 20 minutes.
+`wait_for_vllm_api()` would loop for the full timeout even if the vLLM process had already crashed. Added a `proc.poll()` check inside the polling loop — if the process has exited with a non-zero code, fail immediately rather than waiting 20 minutes.
 
 **Pad token for decoder-only models**  
-E5-Mistral is a decoder-only model with no padding token defined by default. SentenceTransformer batches with padding, so calling `encode()` on a batch would raise `ValueError`. Fix: `tokenizer.pad_token = tokenizer.eos_token`, propagated to the model config's `pad_token_id`.
+E5-Mistral is a decoder-only model with no padding token defined by default. SentenceTransformer batches with padding, so calling `encode()` on a batch would raise a `ValueError`. Fix: `tokenizer.pad_token = tokenizer.eos_token`, propagated to the model config's `pad_token_id`.
 
 **HNSW efSearch not preserved on load**  
 `faiss.read_index()` doesn't persist HNSW runtime parameters. After loading, `efSearch` resets to its default (16), degrading recall. Fixed by explicitly setting `index.hnsw.efSearch = 128` after every `read_index()` call.
@@ -381,7 +381,7 @@ The queue solver called `base_solver.solve()`, which internally called `budget_m
 
 The budget math is worth spelling out explicitly because it's non-obvious.
 
-**Setup**: 5 hours = 18,000 seconds. Buffer: 300s. Reserve: 600s (pre-funded into bank). Available: 17,100s. Fair share for 50 problems: 342s each.
+**Setup**: 5 hours = 18,000 seconds. Buffer: 300s. Reserve: 600s (pre-funded into the bank). Available: 17,100s. Fair share for 50 problems: 342s each.
 
 **Why base allocation is 480s when fair share is 342s**: The bank absorbs the difference. If every problem finishes in 342s, the bank gains 0 (we've allocated exactly our budget). If problems average 300s, the bank grows by 42s × 50 = 2100s, available for hard problems. The 480s base is an optimistic target; the fair-share cap prevents catastrophic overrun.
 
@@ -403,7 +403,7 @@ With a 5-hour submission time limit, iterating is expensive. Our development wor
 
 **Log analysis**: `solver_debug.log` captured every inference call's metrics (python_calls, python_errors, entropy, answer found/not found, time elapsed). The `persist_logs.py` script copies these to `/kaggle/working` and zips them for post-submission analysis. Patterns like "python_calls=0 for 40% of problems" are immediately visible.
 
-**The `FIX-X` annotation convention**: When we identified a bug during a submission run, we annotated the fix with a comment explaining what broke and why. This created an audit trail that prevented re-introducing the same bugs during subsequent refactors.
+**The `FIX-X` annotation convention**: When we identified a bug during a submission run, we annotated the fix with a comment explaining what broke and why. This created an audit trail that prevented reintroducing the same bugs during subsequent refactors.
 
 ---
 
@@ -411,11 +411,11 @@ With a 5-hour submission time limit, iterating is expensive. Our development wor
 
 **Parallel sampling with early stopping** was the single biggest win. Running 8 samples in parallel and stopping when 4 agree is both faster than running 8 serially and more reliable than any single sample. On ~60% of problems we got consensus after 3–4 samples, saving 4–5 minutes per problem that could be banked.
 
-**The Python tool** was essential. Problems where the model made no Python calls almost never had correct answers. Forcing the model to compute — even for "obvious" calculations — dramatically reduced arithmetic errors. The quality penalty for `python_calls=0` in weighted voting (score × 0.3) was empirically motivated: zero-call answers were wrong far more often.
+**The Python tool** was essential. Problems where the model made no Python calls rarely had correct answers. Forcing the model to compute — even for "obvious" calculations — dramatically reduced arithmetic errors. The quality penalty for `python_calls=0` in weighted voting (score × 0.3) was empirically motivated: zero-call answers were wrong far more often.
 
 **Auto-print** (`_ensure_last_print`) was a small change with disproportionate impact. Without it, the model would write `sympy.factorint(360)` and get no output, then often just move on rather than retry — resulting in answers that were not computationally verified.
 
-**Slim kernel reset** saved meaningful wall-clock time. With 50 problems × 8 samples × ~3 kernel resets per sample = 1,200 resets. At 3s each vs 30s, that's a 27-second saving per reset × 1,200 = ~9 hours saved — more than the entire competition window. In practice the saving was smaller (not all samples reach 3 resets) but still around 30 minutes.
+**Slim kernel reset** saved meaningful wall-clock time. With 50 problems × 8 samples × ~3 kernel resets per sample = 1,200 resets. At 3s each vs 30s, that's a 27-second saving per reset × 1,200 = ~9 hours saved — more than the entire competition window. In practice, the saving was smaller (not all samples reach 3 resets) but still around 30 minutes.
 
 **Weighted voting** skipped GenSelect on the majority of contested problems. GenSelect takes ~2 minutes (judge inference + parsing); weighted voting takes milliseconds. For problems where one candidate had clearly more Python calls and fewer errors, the vote was unambiguous.
 
@@ -437,13 +437,13 @@ With a 5-hour submission time limit, iterating is expensive. Our development wor
 
 **Enhanced profiling hints caused attention dilution on some problems.** Injecting 500 characters of strategy text before the problem occasionally caused the model to anchor on the hints rather than engaging freshly with the problem statement. The compressed format helped but didn't eliminate the effect. The correct tradeoff point — how much hint text is helpful before it starts hurting — likely varies per problem and would need per-category A/B testing to calibrate.
 
-**Kernel pool startup time was higher than expected.** Initialising 16 Jupyter kernels with full preload takes ~60–90 seconds at notebook startup. During that window the vLLM server is warm and idle. We never found a way to overlap these — kernels need the Python path to be set up by the notebook environment before they can import, and that happens after vLLM finishes loading.
+**Kernel pool startup time was higher than expected.** Initialising 16 Jupyter kernels with full preload takes ~60–90 seconds at notebook startup. During that window, the vLLM server is warm and idle. We never found a way to overlap these — kernels need the Python path to be set up by the notebook environment before they can import, and that happens after vLLM finishes loading.
 
-**Adaptive k never beat fixed k=8.** We built a keyword-driven adaptive k system: the `strategy_guide_v3.json` encoded per-category preset time limits and sample counts. Problems with "how many", "count", "ways" keywords (computationally tractable combinatorics) got k=4 and a tighter deadline; problems with "prove", "find all functions" (hard algebra/proof) got k=12 and a generous deadline. In theory this should free up budget from easy problems for hard ones. In practice, classifying difficulty from keywords alone is unreliable — a "how many" problem can be brutally hard, and a "find all integers" problem can be trivial — and the mis-classifications hurt more than the correct ones helped. Fixed k=8 with the bank-based budget extension proved more robust because it adapts dynamically to actual solve time rather than predicted difficulty.
+**Adaptive k never beat fixed k=8.** We built a keyword-driven adaptive k system: the `strategy_guide_v3.json` encoded per-category preset time limits and sample counts. Problems with "how many", "count", "ways" keywords (computationally tractable combinatorics) got k=4 and a tighter deadline; problems with "prove", "find all functions" (hard algebra/proof) got k=12 and a generous deadline. In theory, this should free up budget from easy problems for hard ones. In practice, classifying difficulty from keywords alone is unreliable — a "how many" problem can be brutally hard, and a "find all integers" problem can be trivial — and the misclassifications hurt more than the correct ones helped. Fixed k=8 with the bank-based budget extension proved more robust because it adapts dynamically to actual solve time rather than predicted difficulty.
 
 **Beam search and MCTS added coordination overhead without score improvement (V50).** After recovering to 37 at V49, we tried replacing flat parallel sampling with structured tree-search decoding. Beam search maintained the top-B partial token sequences at each step, pruning by cumulative log-probability. MCTS treated each reasoning step (generation up to a tool call boundary) as a node, with rollout value estimated via a short forward pass. Neither beat flat k=8 sampling. Beam search at the token level collapses diversity too aggressively — the top-B beams at step 50 are all very similar, which defeats the purpose of running multiple samples. MCTS was more interesting: it did find better solutions on a few hard problems where the flat sampler was stuck. But the node expansion overhead, the cost of rollout estimation, and the bookkeeping complexity meant that the average across all 50 problems was no better than independent sampling with a dynamic budget. Tree search is the right long-term direction but requires a fast value function (a trained verifier, not another full forward pass) to be practical at competition time scales.
 
-**The classroom pooling method was promising but didn't beat independent sampling.** The idea: rather than 8 fully independent samples, group kernels into two "classrooms" of 4. Within each classroom, once any kernel produces a notable intermediate result — a factored form, a verified small case, a Python output that narrows the answer space — that result is injected as a system message into the other 3 kernels in the group. This creates a cooperative dynamic: kernels share partial discoveries while still pursuing their own reasoning paths. We implemented this, but it didn't outperform 8 independent samples in our tests. The synchronisation points were hard to choose correctly: injecting too early (before the finding was reliable) anchored other kernels on wrong intermediate results; injecting too late (once kernels had committed to approaches) produced no change in behaviour. The coordination overhead also introduced occasional deadlocks when one kernel in a group was waiting for another to produce a finding that never came. What the winning solutions did differently — likely using a cleaner broadcast mechanism or better-chosen injection timing — is discussed in [What the Winners Did](#what-the-winners-did).
+**The classroom pooling method was promising but didn't beat independent sampling.** The idea: rather than 8 fully independent samples, group kernels into two "classrooms" of 4. Within each classroom, once any kernel produces a notable intermediate result — a factored form, a verified small case, a Python output that narrows the answer space — that result is injected as a system message into the other 3 kernels in the group. This creates a cooperative dynamic: kernels share partial discoveries while still pursuing their own reasoning paths. We implemented this, but it didn't outperform 8 independent samples in our tests. The synchronisation points were hard to choose correctly: injecting too early (before the finding was reliable) anchored other kernels on wrong intermediate results; injecting too late (once kernels had committed to approaches) produced no change in behaviour. The coordination overhead also introduced occasional deadlocks when one kernel in a group was waiting for another to produce a finding that never came. What the winning solutions did differently — likely using a cleaner broadcast mechanism or better-chosen injection timing — is discussed in [What ippeiogawa Did](#what-the-solution-that-I-liked-did).
 
 ---
 
@@ -489,16 +489,16 @@ GenSelect asks the same model to judge its own outputs. This is problematic — 
 We classified problems by category but not by difficulty. The budget manager allocated time based on how long the model had spent, not on how hard the problem actually was. Spending the first 20 tokens of generation to estimate difficulty (using a fast forward pass on a smaller model) would let us front-load budget for genuinely hard problems.
 
 **5. Structured answer extraction.**  
-Parsing `\boxed{...}` from free text with regex has edge cases: `\boxed{\frac{1}{2}}`, `\boxed{answer not found}`, nested braces, Unicode math. Making the model output structured JSON `{"answer": N, "confidence": 0.x, "verified_by_python": true}` as its final message would eliminate the extraction layer entirely.
+Parsing `\boxed{...}` from free text with regex has edge cases: `\boxed{\frac{1}{2}}`, `\boxed{answer not found}`, nested braces, Unicode math. Making the model output structured JSON `{"answer": N, "confidence": 0.x, "verified_by_python": true}` as its final message would eliminate the extraction layer.
 
 **6. Profile kernel overhead earlier.**  
-Late in development we realised ~20% of wall-clock time was in kernel startup and reset. More aggressive profiling — timing each phase of the pipeline from day one — would have surfaced this sooner and motivated the slim-reset optimisation earlier.
+Late in development, we realised ~20% of wall-clock time was in kernel startup and reset. More aggressive profiling — timing each phase of the pipeline from day one — would have surfaced this sooner and motivated the slim-reset optimisation earlier.
 
 **7. Track technique card coverage.**  
 We built 41 technique cards but had no systematic way to know which ones were actually being retrieved and helping. Adding a counter per card and logging which cards appeared in solved vs unsolved problems would let us identify gaps and prioritise new cards.
 
 **8. GCG-based prompt compression (offline).**  
-Our system prompt is ~500 tokens of natural language guidance. Those tokens appear in every generation call, consuming context that could otherwise be reasoning. Greedy Coordinate Gradient (GCG) — originally developed as an adversarial attack method — can be repurposed offline as a prompt optimiser: given gradient access to the model weights, it searches for a shorter token sequence that produces the same steering effect on model behaviour. A 100-token GCG-optimised prefix replacing a 500-token natural language prompt would save 400 tokens per call. Across 8 samples × ~8 iterations × 50 problems, that is roughly 1.28M fewer input tokens per submission — at 30 tokens/second throughput, approximately 40 minutes saved. The practical barriers are real: GCG requires direct weight access (not the API), the resulting tokens are human-unreadable which makes debugging painful, and there is a genuine risk of overfitting to the optimization objective rather than generalising to all 50 problems. Softer alternatives — LLMLingua-style perplexity-based compression, or prefix tuning in embedding space — would be more interpretable and easier to iterate on.
+Our system prompt is ~500 tokens of natural language guidance. Those tokens appear in every generation call, consuming context that could otherwise be used for reasoning. Greedy Coordinate Gradient (GCG) — originally developed as an adversarial attack method — can be repurposed offline as a prompt optimiser: given gradient access to the model weights, it searches for a shorter token sequence that produces the same steering effect on model behaviour. A 100-token GCG-optimised prefix replacing a 500-token natural language prompt would save 400 tokens per call. Across 8 samples × ~8 iterations × 50 problems, that is roughly 1.28M fewer input tokens per submission — at 30 tokens/second throughput, approximately 40 minutes saved. The practical barriers are real: GCG requires direct weight access (not the API), the resulting tokens are human-unreadable, which makes debugging painful, and there is a genuine risk of overfitting to the optimization objective rather than generalising to all 50 problems. Softer alternatives — LLMLingua-style perplexity-based compression, or prefix tuning in embedding space — would be more interpretable and easier to iterate on.
 
 **9. Commit to the classroom pooling architecture earlier.**  
 We implemented the classroom pooling method late in the competition, which meant we had little time to tune the synchronisation logic. If we had committed to this architecture from the start and spent the same iteration time on it that we spent on prompt engineering, we might have found the injection timing that the winning solutions apparently discovered. The fundamental idea is correct — sharing intermediate findings between samples reduces redundant work — but the devil is entirely in the implementation details of when and what to share.
@@ -507,41 +507,56 @@ We implemented the classroom pooling method late in the competition, which meant
 
 ## Future Directions
 
-**Process reward models (PRMs)**: Instead of scoring completed solutions, a PRM scores each intermediate step. With a PRM, we could do best-first search over partial solutions, pruning wrong branches before they consume the entire token budget. Deepmind's "Let's Verify Step by Step" paper showed this approach dramatically outperforms outcome reward models at the same compute budget.
+**Process reward models (PRMs)**: Instead of scoring completed solutions, a PRM scores each intermediate step. With a PRM, we could do best-first search over partial solutions, pruning wrong branches before they consume the entire token budget. DeepMind's "Let's Verify Step by Step" paper showed this approach dramatically outperforms outcome reward models at the same compute budget.
 
 **Fine-tuning on competition problems**: GPT-OSS was not specifically fine-tuned for the AIMO3 problem format. A supervised fine-tuning pass on (problem, TIR trace, correct answer) examples from AIME/AMC/USAMO would teach the model both the answer format and the pattern of reaching for Python at specific moments.
 
-**Symbolic-numeric hybrid verification**: After the model finds a candidate answer, a separate verification pass could confirm it using purely symbolic means (sympy equation solving) without LLM generation. This would catch cases where the model's Python code had a bug but the answer coincidentally fell in [0, 99999].
+**Symbolic-numeric hybrid verification**: After the model finds a candidate answer, a separate verification pass could confirm it using purely symbolic means (SymPy equation solving) without LLM generation. This would catch cases where the model's Python code had a bug, but the answer coincidentally fell in [0, 99999].
 
-**Better RAG corpus construction**: The OMR corpus filtering was relatively coarse. A better approach would train a quality classifier on (problem, solution, known_correct) triples and use it to select the 20K highest-quality chains, rather than using source heuristics alone.
+**Better RAG corpus construction**: The OMR corpus filtering was relatively coarse. A better approach would be to train a quality classifier on (problem, solution, known_correct) triples and use it to select the 20K highest-quality chains, rather than using source heuristics alone.
 
 **Classroom pooling with better synchronisation**: The cooperative sampling idea has merit — the winning solutions proved it. The right implementation probably involves a "teacher" sample that runs first and whose Python outputs (not full reasoning, just confirmed numeric results) are broadcast to the remaining "student" samples as verified facts. This is narrower than injecting full intermediate reasoning, which risks anchoring students on wrong approaches, and broader than doing nothing. The key insight from the winning approach is likely that sharing *verified code outputs* is safe while sharing *reasoning conclusions* is risky.
 
 **GCG prompt compression**: Offline gradient-based optimisation of the system prompt to find a compact token sequence that achieves the same steering effect. One-time computation cost, permanent per-call token savings. Worth at least running on the system prompt and `TIR_PROMPT_BASE` to quantify the potential gain before committing to the implementation overhead.
 
-**Conversation-level state across the full sample pool**: Currently all 8 samples start from scratch. With a shared scratch pad — Python outputs confirmed by at least two independent samples — later samples could skip rediscovering already-ruled-out approaches.
+**Conversation-level state across the full sample pool**: Currently, all 8 samples start from scratch. With a shared scratch pad — Python outputs confirmed by at least two independent samples — later samples could skip rediscovering already-ruled-out approaches.
 
 ---
 
-## Repository Structure
+## Competition Repository Structure
 
 ```
-.
-├── solve_adv_kaggle2.py        # Main solver: vLLM init, problem dispatch, category prompting
-├── solve_adv_kaggle_queue.py   # Queue-based wrapper with priority scheduling
-├── inferencer2.py              # Core: parallel TIR, early stop, weighted vote, GenSelect
-├── local_python_tool.py        # Jupyter kernel pool, MathTools, SageMath, auto-print
-├── dynamic_budget.py           # Mutable deadline handles, bank-based time extensions
-├── rag_system.py               # Two-layer RAG: technique cards + OMR corpus
-├── rag_tool.py                 # On-demand RAG as a callable model tool (rag_search)
-├── build_omr_corpus.py         # Filter OMR dataset, embed, build FAISS HNSW index
-├── technique_corpus.py         # 41 hand-crafted olympiad technique cards with Python
-├── enhanced_profiling.py       # Problem classification + compressed hint injection
-├── retry_manager.py            # Track low-confidence problems, priority retry pool
-├── strategy_guide_v3.json      # Per-category strategies, priority weights, examples
-├── persist_logs.py             # Copy runtime logs to /kaggle/working on exit
-├── aimo3-writeup.md            # This write-up
-└── aimo3-scores.html           # Interactive score history chart (open in any browser)
+AIMO3/
+├── Data Sources/
+│   ├── AI Mathematical Olympiad/
+│   ├── aimo3_ext_eval/
+│   └── helper/
+│       ├── math_wheels/
+│       ├── omr_corpus/
+│       ├── AIMO3_Reference/
+│       ├── build_omr_corpus.py
+│       ├── dynamic_budget.py
+│       ├── enhanced_profiling.py
+│       ├── inferencer2.py
+│       ├── llama_cpp_python/
+│       ├── local_python_tool/
+│       ├── persist_logs.py
+│       ├── rag_system.py
+│       ├── rag_tool.py
+│       ├── reference.csv
+│       ├── retry_manager.py
+│       ├── sample_submission.csv
+│       ├── solve_adv_kaggle.py
+│       ├── solve_adv_kaggle_*.py
+│       ├── strategy_guide_v3/
+│       ├── technique_corpus/
+│       └── test.csv
+│
+├── Nvidia/OpenMathReasoning/
+├── AIMO 3 | Utils/
+└── KernelSetupAIMO/
+
+
 ```
 
 ---
@@ -559,7 +574,7 @@ The full table of scored submissions, with the major architectural inflection po
 | **V34** | **32** | **GPT-OSS 120B (Unsloth) introduced — +29 points** |
 | V38 | 18 | Jinja template edits attempting to improve reasoning format — −14 |
 | V40 | 21 | Further jinja experiments, partial recovery |
-| **V41** | **37** | **Classroom pooling introduced — +16 points** |
+| **V41** | **37** | **Classroom pooling introduced and dropped jinja experiments — +16 points** |
 | V43 | 34 | Pooling variant, slight regression |
 | **V44** | **38** | **Personal best. [Submission notebook](https://www.kaggle.com/code/jarvis2026/aimo3vllm216-helper278)** |
 | V45 | 35 | Minor regression from V44 |
@@ -669,13 +684,13 @@ for text, metrics in results:
 - **Microsoft** — E5-Mistral-7B-Instruct for mathematical embeddings
 - **Meta / FAISS** — HNSW index making 1ms semantic retrieval practical
 - **vLLM team** — 120B-parameter inference within Kaggle's memory constraints
-- **The winning team** — their [published write-up](https://www.kaggle.com/competitions/ai-mathematical-olympiad-progress-prize-3/writeups/aimo3test) confirmed that the cooperative pooling direction was the right one
+- **ippeiogawa's solution** — [published write-up](https://www.kaggle.com/competitions/ai-mathematical-olympiad-progress-prize-3/writeups/aimo3test) confirmed that the cooperative pooling direction was the right one
 
 ---
 
-## What the solution that I liked did
+## What the solution that I liked did ([ippeiogawa](https://www.kaggle.com/ippeiogawa))
 
-The solution's [published write-up](https://www.kaggle.com/competitions/ai-mathematical-olympiad-progress-prize-3/writeups/aimo3test) is worth reading in full. The key architectural difference from our approach was a more deliberate implementation of what we called the "classroom" model.
+Their [published write-up](https://www.kaggle.com/competitions/ai-mathematical-olympiad-progress-prize-3/writeups/aimo3test) is worth reading in full. The key architectural difference from our approach was a more deliberate implementation of what we called the "classroom" model.
 
 Where our pooling attempt shared raw intermediate reasoning — which caused anchoring — the approach appears to have solved the synchronisation problem by being more selective about *what* gets shared. Rather than broadcasting reasoning conclusions ("I think the answer involves a factor of 7"), sharing confirmed Python output values ("code returned 1984 for n ≤ 10,000") is much safer: code output is an oracle, not an opinion. A kernel that receives "brute force gives 1984" as a confirmed fact can skip the brute-force phase and invest its budget in structure analysis and proof verification instead.
 
@@ -687,7 +702,7 @@ The lesson for us: **the unit of sharing matters more than the mechanism of shar
 
 ## Closing Thoughts
 
-We finished at **38/50**, matching our previous personal best but not pushing past it. The gap between 38 and the ceiling is largely explained by two things: problems where the model genuinely could not find the right approach within the time budget (hard combinatorics and functional equation problems accounted for most losses), and the classroom pooling architecture that was theoretically right but practically incomplete when we submitted.
+We finished at **38/50**(Public), matching our previous personal best but not pushing past it. The gap between 38 and the ceiling is largely explained by two things: problems where the model genuinely could not find the right approach within the time budget (hard combinatorics and functional equation problems accounted for most losses), and the classroom pooling architecture that was theoretically right but practically incomplete when we submitted.
 
 AIMO3 is a genuinely hard engineering problem wrapped around a hard mathematical one. The mathematics is the terminal challenge — but getting a 120B-parameter model to reliably call a Python tool, parse the output, and incorporate it into a running proof requires careful plumbing at every layer.
 
@@ -821,7 +836,7 @@ The `openai_harmony` library is the least-documented but most structurally impor
 - `python` — this message is a Python code block to execute
 - `rag_search` — this message is a retrieval query
 
-**Why the analysis channel matters for GenSelect**: When we prompt the judge with "output BEST: N", it routes through the analysis channel first (internal deliberation) then produces output on the final channel. If the max_tokens budget is tight, analysis fills the budget and the final `BEST: N` never appears. The pre-fill trick — appending `BEST: ` as an assistant message before completion — forces the model to continue from that prefix, bypassing the analysis phase and producing the decision as its first tokens.
+**Why the analysis channel matters for GenSelect**: When we prompt the judge with "output BEST: N", it routes through the analysis channel first (internal deliberation), then produces output on the final channel. If the max_tokens budget is tight, analysis fills the budget and the final `BEST: N` never appears. The pre-fill trick — appending `BEST: ` as an assistant message before completion — forces the model to continue from that prefix, bypassing the analysis phase and producing the decision as its first tokens.
 
 **The `render_conversation_for_completion()` call**: This converts the structured `Conversation` object into a flat list of token IDs suitable for vLLM. The harmony encoding handles special tokens, role headers, channel delimiters, and tool call formatting. The output is a raw `prompt_ids` list passed directly to the vLLM API — no text formatting, no template application in our code.
 
@@ -842,13 +857,13 @@ Running GPT-OSS 120B on Kaggle hardware requires careful memory accounting. The 
 layers × heads × head_dim × 2 (K+V) × seq_len × 1 byte
 ≈ 96 × 8 × 128 × 2 × 65536 × 1 byte ≈ 12.9 GB per sequence
 ```
-At `max_num_seqs=256` (the maximum number of sequences in flight), this would be astronomically large. In practice, most sequences are much shorter than 65536 and vLLM manages KV cache as a paged memory pool — only allocating blocks for actually-used positions, not for the maximum possible length.
+At `max_num_seqs=256` (the maximum number of sequences in flight), this would be astronomically large. In practice, most sequences are much shorter than 65536, and vLLM manages KV cache as a paged memory pool — only allocating blocks for actually-used positions, not for the maximum possible length.
 
 **`gpu_memory_utilization=0.95`**: vLLM reserves 95% of available GPU memory after model weight loading for the KV cache pool. The remaining 5% is for CUDA operations, temporary buffers, and the Python process overhead.
 
 **Why 16 kernels, not 8 or 32**: Each Jupyter kernel process uses ~300–500 MB of RAM (not VRAM — Python runs on CPU). 16 kernels × 400 MB = ~6.4 GB RAM, well within Kaggle's RAM allocation. The choice of 16 matches `num_workers=16` in the inferencer, meaning every parallel sample has a kernel immediately available without queuing.
 
-**n-gram speculative decoding memory overhead**: n-gram speculation works entirely in the attention layer during the forward pass — it doesn't allocate a separate draft model. The overhead is roughly proportional to the number of speculative tokens (5) times the cost of a normal forward pass step. In practice this means ~5–15% additional compute but no additional memory.
+**n-gram speculative decoding memory overhead**: n-gram speculation works entirely in the attention layer during the forward pass — it doesn't allocate a separate draft model. The overhead is roughly proportional to the number of speculative tokens (5) times the cost of a normal forward pass step. In practice, this means ~5–15% additional compute but no additional memory.
 
 ---
 
@@ -887,11 +902,11 @@ Understanding where our architecture sits relative to alternatives clarifies the
 
 **k samples, majority vote (no quality weighting)**: Better than single-sample. Fails when the most common answer is confidently wrong (the model systematically misapplies a technique). Our weighted voting penalises answers with no Python calls or high error rates, which breaks ties in cases where majority vote would pick the wrong "popular" answer.
 
-**Best-of-N with verifier**: Generate N candidates, use a separate verifier model to score them. More reliable selection than GenSelect, but requires a fine-tuned verifier and adds significant inference cost. The state of the art for reasoning benchmarks (e.g., Deepmind's AlphaProof, o3 evaluations) uses this approach. We approximated it with GenSelect (same model as judge) because a separately trained verifier wasn't available in the competition environment.
+**Best-of-N with verifier**: Generate N candidates, use a separate verifier model to score them. More reliable selection than GenSelect, but requires a fine-tuned verifier and adds significant inference cost. The state of the art for reasoning benchmarks (e.g., DeepMind's AlphaProof, o3 evaluations) uses this approach. We approximated it with GenSelect (same model as judge) because a separately trained verifier wasn't available in the competition environment.
 
 **Chain-of-thought without tools**: No Python, just text reasoning. Substantially weaker on computation-heavy problems. The gap between tool-augmented and pure CoT is largest on number theory (modular arithmetic, large factorials) and combinatorics (exact counts with large n).
 
-**Always-on RAG injection**: Pre-pend retrieved context to every problem. Adds ~600 tokens to every prompt, which means fewer reasoning tokens available and occasional anchoring on wrong techniques. Our on-demand approach costs nothing when the model doesn't call `rag_search`, and retrieves only when the model decides it's needed.
+**Always-on RAG injection**: Prepend retrieved context to every problem. Adds ~600 tokens to every prompt, which means fewer reasoning tokens available and occasional anchoring on wrong techniques. Our on-demand approach costs nothing when the model doesn't call `rag_search` and retrieves only when the model decides it's needed.
 
 **Tree-of-Thought / MCTS**: Branches at each reasoning step based on uncertainty. Requires significantly more infrastructure (step-level value estimation, tree management, beam pruning) but is strictly more powerful than flat sampling — it can explore more of the reasoning space in the same time budget. This is the natural next step beyond our approach.
 
@@ -929,11 +944,11 @@ print(answer)  # integer in [0, 99999]
 ```
 
 **What you can drop if resources are tight**:
-- RAG (layers 1 and 2) — helpful but not essential, drop if embedder memory is an issue
+- RAG (layers 1 and 2) — helpful but not essential; drop if embedder memory is an issue
 - GenSelect — replace with simple majority vote, costs ~15% accuracy on hard problems
-- SageMath — only needed for elliptic curves / number fields, very rare in practice
+- SageMath — only needed for elliptic curves/number fields, very rare in practice
 - Retry manager — only useful if you complete all problems before the time limit
-- Enhanced profiling hints — measurable but small effect, drop first if prompts are getting unwieldy
+- Enhanced profiling hints — measurable but small effect; drop first if prompts are getting unwieldy
 
 **What you must keep**:
 - Independent kernel per sample — shared kernels corrupt state between samples, causing wrong answers
@@ -958,7 +973,7 @@ print(answer)  # integer in [0, 99999]
 
 **HNSW (Hierarchical Navigable Small World)**: An approximate nearest-neighbour index structure with logarithmic search time. `M=32` controls the number of bi-directional links per node; `efSearch=128` controls query-time search breadth. At 20K vectors, delivers ~1ms search with >99.9% recall.
 
-**E5-Mistral**: E5-mistral-7b-instruct, a 7B instruction-tuned model from intfloat optimised for producing high-quality text embeddings. Decoder-only architecture, requiring explicit padding token setup.
+**E5-Mistral**: E5-mistral-7b-instruct, a 7B instruction-tuned model from intfloat optimised for producing high-quality text embeddings. Decoder-only architecture, requiring an explicit padding token setup.
 
 **OpenVINO**: Intel's inference optimization toolkit. INT8 weight quantization + VNNI (Vector Neural Network Instructions) gives 3–5× CPU speedup over native PyTorch for embedding inference.
 
@@ -988,7 +1003,7 @@ print(answer)  # integer in [0, 99999]
 
 **Jinja / `.jinja` files**: Jinja2 is a Python templating language. The `openai_harmony` library uses `.jinja` template files to define the exact byte layout of each message type in the GPT-OSS conversation format — system turn delimiters, tool call wrappers, channel markers. These are part of the model's training contract and should not be modified without retraining.
 
-**Beam search**: A decoding strategy that maintains the top-B partial token sequences (beams) at each generation step, pruning by cumulative log-probability. Produces higher-probability outputs than greedy sampling but collapses diversity — the B beams converge quickly to similar text. We tried this at V50; it did not improve average score over k=8 independent samples.
+**Beam search**: A decoding strategy that maintains the top-B partial token sequences (beams) at each generation step, pruning by cumulative log-probability. Produces higher-probability outputs than greedy sampling but collapses diversity — the B beams converge quickly to similar text. We tried this at V50; it did not improve the average score over k=8 independent samples.
 
 **MCTS (Monte Carlo Tree Search)**: A tree-search algorithm that builds a search tree by iteratively selecting, expanding, simulating, and backpropagating value estimates. Applied to LLM decoding, each node is a reasoning state (prompt + partial response up to a tool call), and rollouts estimate the probability of reaching a correct answer from that state. We tried a simplified version at V50; it requires a fast value function to be practical at competition time scales.
 
@@ -996,7 +1011,7 @@ print(answer)  # integer in [0, 99999]
 
 **Entropy-weighted self-consistency**: An extension of self-consistency where each sample's vote is weighted by $e^{-\beta H_i}$, where $H_i$ is the mean token entropy of that sample's reasoning trace. Low-entropy (confident) samples receive higher weight. Described in full in the [Entropy-Weighted Self-Consistency](#entropy-weighted-self-consistency) section.
 
-**Adaptive k**: A strategy for varying the number of parallel samples per problem based on predicted difficulty, encoded in the `strategy_guide_v3.json` `budget_allocation` block. Predicts difficulty from keyword matching; in practice mis-classifications hurt more than correct ones helped, and fixed k=8 with dynamic budget extension proved more robust.
+**Adaptive k**: A strategy for varying the number of parallel samples per problem based on predicted difficulty, encoded in the `strategy_guide_v3.json` `budget_allocation` block. Predicts difficulty from keyword matching; in practice, misclassifications hurt more than correct ones helped, and fixed k=8 with dynamic budget extension proved more robust.
 
 ---
 
@@ -1044,7 +1059,7 @@ The key design question was timing. We tried three injection points:
 
 1. **After first Python output** (earliest): Reduced redundant brute-force computation across samples. But sometimes the first sample's brute force was itself wrong (index error, off-by-one) — injecting wrong output anchored the others.
 
-2. **After the first sample produces a candidate answer** (latest): By this point most other samples had already committed to their own approaches. The injection changed the final answer extraction for 1–2 samples but rarely changed their reasoning path.
+2. **After the first sample produces a candidate answer** (latest): By this point, most other samples had already committed to their own approaches. The injection changed the final answer extraction for 1–2 samples but rarely changed their reasoning path.
 
 3. **After the 5th Python call, if no answer yet** (middle): This is where we spent the most time. The idea was that 5 calls is enough for the sample to have committed to an approach but not so late that nothing can be redirected. Results were mixed: on some problems this gave a useful nudge, on others it introduced noise.
 
@@ -1061,7 +1076,7 @@ To make the GCG discussion concrete: here is the actual computation justifying i
 - Each header: ~630 tokens
 - Total: 252,000 tokens of system prompt context
 
-**GCG target**: Replace 630 tokens with a 100-token optimised prefix. Save 530 tokens × 400 renderings = 212,000 tokens. At a throughput of ~30 tokens/second input processing overhead: ~7,000 seconds = ~117 minutes saved. This is significant — more than 39% of the 5-hour budget.
+**GCG target**: Replace 630 tokens with a 100-token optimised prefix. Save 530 tokens × 400 renderings = 212,000 tokens. At a throughput of ~30 tokens/second, input processing overhead: ~7,000 seconds = ~117 minutes saved. This is significant — more than 39% of the 5-hour budget.
 
 **Why we didn't pursue it**: The computation requires running GCG on the Unsloth-quantized weights directly (not through vLLM), which is a substantial engineering effort separate from the competition notebook. GCG on a 120B model is also slow — at 5,000 GCG steps with a batch size of 16, you're looking at multiple days of GPU time for the optimisation itself. The resulting prefix is also non-interpretable, making it impossible to debug if it causes unexpected model behaviour.
 
@@ -1079,11 +1094,11 @@ Numbers in square brackets are used as inline citations throughout this write-up
 
 \[1\] Wang, X., et al. (2022). **Self-Consistency Improves Chain of Thought Reasoning in Language Models.** *arXiv:2203.11171*. The foundational paper for multi-sample majority voting over reasoning chains. Our early-stop consensus and weighted voting both extend this work.
 
-\[2\] Wei, J., et al. (2022). **Chain-of-Thought Prompting Elicits Reasoning in Large Language Models.** *arXiv:2201.11903*. The CoT paradigm underlying all TIR approaches.
+\[2\] Wei, J., et al. (2022). **Chain-of-Thought Prompting Elicits Reasoning in Large Language Models.** *arXiv:2201.11903*. The CoT paradigm underlies all TIR approaches.
 
 ### Tool-Integrated Reasoning
 
-\[3\] Gou, Z., et al. (2023). **TORA: A Tool-Integrated Reasoning Agent for Mathematical Problem Solving.** *arXiv:2309.17452*. The closest published precursor to our TIR loop: model generates code, executes it, incorporates output, continues reasoning.
+\[3\] Gou, Z., et al. (2023). **ToRA: A Tool-Integrated Reasoning Agent for Mathematical Problem Solving.** *arXiv:2309.17452*. The closest published precursor to our TIR loop: the model generates code, executes it, incorporates the output, and continues reasoning.
 
 \[4\] Gao, L., et al. (2022). **PAL: Program-aided Language Models.** *arXiv:2211.10435*. Early demonstration that offloading computation to code execution dramatically reduces arithmetic errors.
 
@@ -1093,11 +1108,11 @@ Numbers in square brackets are used as inline citations throughout this write-up
 
 \[6\] Lewis, P., et al. (2020). **Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.** *arXiv:2005.11401*. The RAG paper. Our two-layer retrieval system follows this architecture with a domain-specific corpus.
 
-\[7\] Asai, A., et al. (2023). **Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection.** *arXiv:2310.11511*. Motivates on-demand retrieval via model-generated retrieve tokens rather than fixed injection intervals. Directly inspired our `rag_search` tool design.
+\[7\] Asai, A., et al. (2023). **Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection.** *arXiv:2310.11511*. Motivates on-demand retrieval via model-generated retrieval tokens rather than fixed injection intervals. Directly inspired our `rag_search` tool design.
 
-\[8\] Jiang, Z., et al. (2023). **Active Retrieval Augmented Generation (FLARE).** *arXiv:2305.06983*. Retrieves when the model is about to generate low-confidence tokens. The FLARE paper alongside Self-RAG established the "retrieve when uncertain" paradigm.
+\[8\] Jiang, Z., et al. (2023). **Active Retrieval Augmented Generation (FLARE).** *arXiv:2305.06983*. Retrieves when the model is about to generate low-confidence tokens. The FLARE paper, alongside Self-RAG, established the "retrieve when uncertain" paradigm.
 
-\[9\] Schick, T., et al. (2023). **Toolformer: Language Models Can Teach Themselves to Use Tools.** *arXiv:2302.14640*. The model calls `[Search(query)]` autonomously; we adapted this for `rag_search("technique description")`.
+\[9\] Schick, T., et al. (2023). **Toolformer: Language Models Can Teach Themselves to Use Tools.** *arXiv:2302.04761*. The model calls `[Search(query)]` autonomously; we adapted this for `rag_search("technique description")`.
 
 ### Verification & Reward Models
 
@@ -1141,9 +1156,10 @@ Numbers in square brackets are used as inline citations throughout this write-up
 
 *End of write-up.*  
 *Competition: [AI Mathematical Olympiad – Progress Prize 3](https://www.kaggle.com/competitions/ai-mathematical-olympiad-progress-prize-3)*  
-*Score: 38/50*  
-*Best submission: [V44 notebook](https://www.kaggle.com/code/jarvis2026/aimo3vllm216-helper278)*  
-*Winning solution: [AIMO3 Test Write-Up](https://www.kaggle.com/competitions/ai-mathematical-olympiad-progress-prize-3/writeups/aimo3test)*  
+*Public Score: 38/50*
+*Final Score: 41.5/50*
+*My Best submission: [V44 notebook](https://www.kaggle.com/code/jarvis2026/aimo3vllm216-helper278)*  
+*ippeiogawa's solution: [AIMO3 Test Write-Up](https://www.kaggle.com/competitions/ai-mathematical-olympiad-progress-prize-3/writeups/aimo3test)*
 *Stack: GPT-OSS 120B (Unsloth) · vLLM · Jupyter kernels · FAISS · E5-Mistral · sentence-transformers · sympy · numpy · mpmath*
 
 ---
