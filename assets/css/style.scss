@@ -41,9 +41,9 @@ body {
 /* ---- Header: replace the left sidebar with a horizontal project bar ---- */
 
 header {
-  float: none;
-  position: static;
-  width: 100%;
+  float: none !important;
+  position: static !important;
+  width: 100% !important;
   max-width: none;
   margin: 0;
   padding: 26px 0 22px;
@@ -247,6 +247,7 @@ blockquote {
 
 footer,
 .footer {
+  position: static !important;
   width: 100%;
   max-width: var(--max);
   margin: 0 auto;
