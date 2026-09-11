@@ -958,7 +958,7 @@ print(answer)  # integer in [0, 99999]
 
 **HNSW (Hierarchical Navigable Small World)**: An approximate nearest-neighbour index structure with logarithmic search time. `M=32` controls the number of bi-directional links per node; `efSearch=128` controls query-time search breadth. At 20K vectors, delivers ~1ms search with >99.9% recall.
 
-**E5-Mistral**: E5-mistral-7b-instruct, a 7B instruction-tuned model from Microsoft optimised for producing high-quality text embeddings. Decoder-only architecture, requiring explicit padding token setup.
+**E5-Mistral**: E5-mistral-7b-instruct, a 7B instruction-tuned model from intfloat optimised for producing high-quality text embeddings. Decoder-only architecture, requiring explicit padding token setup.
 
 **OpenVINO**: Intel's inference optimization toolkit. INT8 weight quantization + VNNI (Vector Neural Network Instructions) gives 3–5× CPU speedup over native PyTorch for embedding inference.
 
