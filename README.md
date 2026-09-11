@@ -84,41 +84,8 @@ Understanding the constraints is essential to understanding our design choices.
 
 ## Architecture
 
-```
-┌────────────────────────────────────────────────────────────────┐
-│                        Kaggle Notebook                          │
-│                                                                  │
-│  ┌──────────────────┐     ┌─────────────────────────────────┐  │
-│  │   vLLM API       │     │      Kernel Pool (×16)          │  │
-│  │   (port 8000)    │     │  Independent Jupyter sessions   │  │
-│  │   GPT-OSS 120B   │     │  sympy / numpy / mpmath         │  │
-│  │   n-gram specd   │     │  MathTools / SageMath           │  │
-│  │   TP=2, KV fp8   │     │  Ports 50000–50079 allocated    │  │
-│  └────────┬─────────┘     └──────────────┬──────────────────┘  │
-│           │                              │                      │
-│           └──────── Inferencer ───────────┘                     │
-│                         │                                       │
-│                k=8 parallel samples                             │
-│              each with DeadlineHandle                           │
-│             watcher thread → bank draws                         │
-│            early-stop at 4× consensus                          │
-│                         │                                       │
-│           ┌─────────────┴──────────────────┐                   │
-│           │         Answer selection        │                   │
-│           │  1. Early consensus (fast)      │                   │
-│           │  2. Weighted vote (medium)      │                   │
-│           │  3. GenSelect judge (slow)      │                   │
-│           └─────────────────────────────────┘                   │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    Two-Layer RAG                          │  │
-│  │  Layer 1: 41 technique cards (always available)          │  │
-│  │  Layer 2: ~20K OMR solved problems (FAISS HNSW)         │  │
-│  │  Embedder: E5-Mistral-7B → OpenVINO INT8 → TF-IDF       │  │
-│  │  Delivery: on-demand via rag_search tool call            │  │
-│  └──────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────┘
-```
+![Architecture Flowchart](FlowChart.png)
+
 
 The main loop, in plain terms:
 
