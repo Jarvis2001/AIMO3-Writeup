@@ -1,5 +1,4 @@
-# AIMO3 Competition Write-Up: Building a Math Olympiad Solver
-
+# AIMO3 Competition Write-Up
 > **AI Mathematical Olympiad – Progress Prize 3**  
 > Final score: **41.5/50**
 > Stack: GPT-OSS 120B (Unsloth-quantized) · vLLM · Jupyter kernels · Two-layer RAG
