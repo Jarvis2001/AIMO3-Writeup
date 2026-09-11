@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIMO3 Score History</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0a0f1e; font-family: 'Inter', system-ui, sans-serif; color: #e2e8f0; padding: 32px 24px; }
+  .container { max-width: 860px; margin: 0 auto; }
+  .eyebrow { font-size: 11px; letter-spacing: .12em; color: #64748b; text-transform: uppercase; margin-bottom: 8px; }
+  h1 { font-size: 26px; font-weight: 800; color: #f8fafc; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #94a3b8; line-height: 1.6; margin-bottom: 28px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 28px; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #94a3b8; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .chart-wrap { position: relative; background: #0f172a; border-radius: 10px; padding: 20px; margin-bottom: 32px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 32px; }
+  .stat { background: #0f172a; border-radius: 8px; padding: 14px 16px; }
+  .stat-val { font-size: 22px; font-weight: 800; }
+  .stat-label { font-size: 11px; color: #64748b; margin-top: 2px; }
+  .stat-sub { font-size: 11px; color: #475569; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 24px; }
+  th { text-align: left; padding: 8px 12px; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid #1e293b; }
+  td { padding: 9px 12px; border-bottom: 1px solid #1a2235; vertical-align: top; }
+  tr:hover td { background: #111827; }
+  .v-tag { font-weight: 700; }
+  .score-cell { font-weight: 600; }
+  .peak-row td { background: #0d1f0d; }
+  .peak-row .score-cell { color: #22c55e; }
+  .drop-note { color: #ef4444; }
+  .gain-note { color: #a78bfa; }
+  .model-note { color: #3b82f6; }
+  .footer { font-size: 11px; color: #334155; text-align: center; margin-top: 24px; }
+  .footer a { color: #475569; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="eyebrow">Kaggle · AIMO3 · 20 Scored Submissions</div>
+  <h1>Submission Score History</h1>
+  <p class="subtitle">Each point is a scored Kaggle submission. Highlighted versions mark pivotal architectural changes.</p>
+
+  <div class="legend">
+    <div class="legend-item"><div class="dot" style="background:#3b82f6;box-shadow:0 0 6px #3b82f6"></div>Model change</div>
+    <div class="legend-item"><div class="dot" style="background:#a78bfa;box-shadow:0 0 6px #a78bfa"></div>Architecture gain</div>
+    <div class="legend-item"><div class="dot" style="background:#22c55e;box-shadow:0 0 6px #22c55e"></div>Personal best</div>
+    <div class="legend-item"><div class="dot" style="background:#ef4444;box-shadow:0 0 6px #ef4444"></div>Score drop</div>
+    <div class="legend-item"><div class="dot" style="background:#94a3b8"></div>Iteration</div>
+  </div>
+
+  <div class="chart-wrap">
+    <canvas id="scoreChart" height="320"></canvas>
+  </div>
+
+  <div class="stats">
+    <div class="stat" style="border-top:2px solid #3b82f6">
+      <div class="stat-val" style="color:#3b82f6">+29</div>
+      <div class="stat-label">Biggest single gain</div>
+      <div class="stat-sub">V23 → V34  Model switch to GPT-OSS 120B</div>
+    </div>
+    <div class="stat" style="border-top:2px solid #ef4444">
+      <div class="stat-val" style="color:#ef4444">−28</div>
+      <div class="stat-label">Biggest single loss</div>
+      <div class="stat-sub">V45 → V47  Three simultaneous changes</div>
+    </div>
+    <div class="stat" style="border-top:2px solid #22c55e">
+      <div class="stat-val" style="color:#22c55e">38/50</div>
+      <div class="stat-label">Personal best</div>
+      <div class="stat-sub">V44  Pooling + clean TIR loop</div>
+    </div>
+    <div class="stat" style="border-top:2px solid #ef4444">
+      <div class="stat-val" style="color:#ef4444">−7</div>
+      <div class="stat-label">RAG impact</div>
+      <div class="stat-sub">V55 → V56  On-demand RAG hurt, not helped</div>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Version</th><th>Score</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="v-tag">V13</td><td class="score-cell">3</td><td class="model-note">Qwen2.5 Math baseline</td></tr>
+      <tr><td class="v-tag">V21</td><td class="score-cell">6</td><td>Early iteration</td></tr>
+      <tr><td class="v-tag">V22</td><td class="score-cell">2</td><td class="drop-note">Regression</td></tr>
+      <tr><td class="v-tag">V23</td><td class="score-cell">3</td><td>Still on Qwen2.5</td></tr>
+      <tr><td class="v-tag">V34</td><td class="score-cell" style="color:#3b82f6">32</td><td class="model-note">GPT-OSS 120B (Unsloth) introduced → <b>+29</b></td></tr>
+      <tr><td class="v-tag">V38</td><td class="score-cell">18</td><td class="drop-note">Jinja template edits → −14</td></tr>
+      <tr><td class="v-tag">V40</td><td class="score-cell">21</td><td>Further jinja changes, partial recovery</td></tr>
+      <tr><td class="v-tag">V41</td><td class="score-cell" style="color:#a78bfa">37</td><td class="gain-note">Classroom pooling introduced → <b>+16</b></td></tr>
+      <tr><td class="v-tag">V43</td><td class="score-cell">34</td><td>Consolidation</td></tr>
+      <tr class="peak-row"><td class="v-tag" style="color:#22c55e">V44</td><td class="score-cell">38</td><td style="color:#22c55e">🏆 Personal best — 38/50</td></tr>
+      <tr><td class="v-tag">V45</td><td class="score-cell">35</td><td>Slight regression</td></tr>
+      <tr><td class="v-tag">V47</td><td class="score-cell" style="color:#ef4444">10</td><td class="drop-note">Presets + profiling + jinja overhaul → <b>−28</b></td></tr>
+      <tr><td class="v-tag">V48</td><td class="score-cell">31</td><td>Partial recovery</td></tr>
+      <tr><td class="v-tag">V49</td><td class="score-cell">37</td><td>Near-peak recovery</td></tr>
+      <tr><td class="v-tag">V50</td><td class="score-cell">33</td><td>Beam search + MCTS applied — no improvement</td></tr>
+      <tr><td class="v-tag">V51</td><td class="score-cell">33</td><td>Consolidation</td></tr>
+      <tr><td class="v-tag">V53</td><td class="score-cell">30</td><td>Presets JSON revision</td></tr>
+      <tr><td class="v-tag">V54</td><td class="score-cell">31</td><td>—</td></tr>
+      <tr><td class="v-tag">V55</td><td class="score-cell">33</td><td>RAG + profiling combined</td></tr>
+      <tr><td class="v-tag">V56</td><td class="score-cell" style="color:#ef4444">26</td><td class="drop-note">On-demand RAG tooling (Self-RAG/FLARE) → −7</td></tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    AI Mathematical Olympiad – Progress Prize 3 · Kaggle 2026 ·
+    <a href="https://www.kaggle.com/competitions/ai-mathematical-olympiad-progress-prize-3">Competition page</a>
+  </div>
+</div>
+
+<script>
+const labels = ['V13','V21','V22','V23','V34','V38','V40','V41','V43','V44','V45','V47','V48','V49','V50','V51','V53','V54','V55','V56'];
+const scores = [3,6,2,3,32,18,21,37,34,38,35,10,31,37,33,33,30,31,33,26];
+const types  = ['model',null,null,null,'model','drop',null,'gain',null,'peak',null,'drop',null,null,null,null,null,null,null,'drop'];
+
+const COLOR = { peak:'#22c55e', model:'#3b82f6', gain:'#a78bfa', drop:'#ef4444', null:'#64748b' };
+const pointColors = types.map(t => COLOR[t] || COLOR.null);
+const pointRadius = types.map(t => t ? 7 : 4);
+
+const ctx = document.getElementById('scoreChart').getContext('2d');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [{
+      data: scores,
+      borderColor: '#334155',
+      borderWidth: 2,
+      pointBackgroundColor: pointColors,
+      pointBorderColor: pointColors,
+      pointRadius,
+      pointHoverRadius: 9,
+      tension: 0.3,
+      fill: true,
+      backgroundColor: (ctx) => {
+        const g = ctx.chart.ctx.createLinearGradient(0,0,0,320);
+        g.addColorStop(0,'rgba(59,130,246,0.10)');
+        g.addColorStop(1,'rgba(59,130,246,0.00)');
+        return g;
+      }
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#0f172a',
+        borderColor: '#1e293b',
+        borderWidth: 1,
+        titleColor: '#f1f5f9',
+        bodyColor: '#94a3b8',
+        callbacks: {
+          label: (ctx) => ` ${ctx.raw} / 50`
+        }
+      },
+      annotation: { annotations: {
+        peak: { type:'line', yMin:38, yMax:38, borderColor:'rgba(34,197,94,0.4)', borderWidth:1, borderDash:[6,3] },
+        max:  { type:'line', yMin:50, yMax:50, borderColor:'rgba(51,65,85,0.5)',  borderWidth:1, borderDash:[4,4] }
+      }}
+    },
+    scales: {
+      x: { ticks:{ color:'#64748b', font:{size:11} }, grid:{ display:false }, border:{ color:'#1e293b' } },
+      y: { min:0, max:52, ticks:{ color:'#64748b', font:{size:11} }, grid:{ color:'#1e293b' }, border:{ display:false } }
+    }
+  }
+});
+</script>
+</body>
+</html>
