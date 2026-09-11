@@ -593,7 +593,7 @@ The full table of scored submissions, with the major architectural inflection po
 
 ### Reading the Curve
 
-> **Score chart**: An interactive version of the chart below is available at [`aimo3-scores.html`](./aimo3-scores.html) — open it in any browser, no build step required.
+> **Score chart**: An interactive version of the chart below is available at [`here`](https://jarvis2001.github.io/AIMO3-Writeup/aimo3-scores.html) — open it in any browser, no build step required.
 
 **V13–V23**: The Qwen2.5 Math era. Scores between 2 and 6 reflect a model that can handle routine school-level arithmetic but lacks the reasoning depth and context length for olympiad-level problems. The ceiling was clearly below 10.
 
