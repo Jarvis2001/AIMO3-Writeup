@@ -1148,11 +1148,15 @@ Numbers in square brackets are used as inline citations throughout this write-up
 
 ---
 
-Citation:
+## Citation
+
+If you use this work, please cite:
+
+```bibtex
 @misc{ai-mathematical-olympiad-progress-prize-3,
-    author = {Simon Frieder and Sam Bealing and Philip Vonderlind and Sida Li and Arsenii Nikolaiev and Geoff C. Smith and Kevin Buzzard and Timothy Gowers and Peter J. Liu and Po-Shen Loh and Lester Mackey and Leonardo de Moura and Dan Roberts and D. Sculley and Terence Tao and David Balduzzi and Simon Coyle and Alex Gerko and Ryan Holbrook and Addison Howard and XTX Markets},
-    title = {AI Mathematical Olympiad - Progress Prize 3},
-    year = {2025},
-    howpublished = {\url{https://www.kaggle.com/competitions/ai-mathematical-olympiad-progress-prize-3}},
-    note = {Kaggle}
+  author = {Simon Frieder and Sam Bealing and Philip Vonderlind and Sida Li and Arsenii Nikolaiev and Geoff C. Smith and Kevin Buzzard and Timothy Gowers and Peter J. Liu and Po-Shen Loh and Lester Mackey and Leonardo de Moura and Dan Roberts and D. Sculley and Terence Tao and David Balduzzi and Simon Coyle and Alex Gerko and Ryan Holbrook and Addison Howard and XTX Markets},
+  title = {AI Mathematical Olympiad - Progress Prize 3},
+  year = {2025},
+  howpublished = {\url{https://www.kaggle.com/competitions/ai-mathematical-olympiad-progress-prize-3}},
+  note = {Kaggle}
 }
