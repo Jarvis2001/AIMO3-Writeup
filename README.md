@@ -620,11 +620,28 @@ Standard self-consistency \[1\] samples k reasoning chains and takes a majority 
 
 The natural extension is **entropy-weighted self-consistency**: weight each chain's vote by the inverse of its mean token-level entropy. The intuition is grounded in calibration theory — a well-calibrated model expresses high confidence (low entropy) when it is more likely to be correct. A chain where the model was consistently certain about each token is more likely to represent a well-understood, correct reasoning path than one where the model wandered through uncertain decisions before landing on an answer.
 
-**Formal definition**: Let sample $i$ generate answer $a_i$ with mean token entropy $H_i = -\frac{1}{|T_i|}\sum_{t \in T_i} \sum_{v} p_t(v) \log p_t(v)$. The entropy-weighted vote for answer $a$ is:
+**Formal definition:** Let sample \(i\) generate answer \(a_i\) with mean token entropy
 
-$$W(a) = \sum_{\{i : a_i = a\}} e^{-\beta H_i}$$
+\[
+H_i = -\frac{1}{|T_i|}
+\sum_{t \in T_i} \sum_v p_t(v)\log p_t(v).
+\]
 
-The final answer is $\hat{a} = \arg\max_a W(a)$, where $\beta$ is a temperature parameter controlling sensitivity to entropy.
+The entropy-weighted vote for answer \(a\) is
+
+\[
+W(a) =
+\sum_{\{i : a_i = a\}} e^{-\beta H_i}.
+\]
+
+The final answer is
+
+\[
+\hat{a} = \arg\max_a W(a),
+\]
+
+where \(\beta\) is a parameter controlling sensitivity to entropy.
+
 
 **What we implemented**: Our `_compute_mean_entropy()` function already computes $H_i$ from the logprob buffer. Our weighted voting uses a coarse step function:
 
