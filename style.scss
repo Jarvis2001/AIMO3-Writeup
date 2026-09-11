@@ -4,90 +4,279 @@
 @import "{{ site.theme }}";
 
 /* ============================================================
-   AIMO3 Write-up — readability overrides for jekyll-theme-minimal
-   Stock theme: 500px article column, 14px gray text.
-   These rules widen the column and bump type size/contrast.
+   AIMO3 Write-Up — full-width editorial layout
+   Goal: core article content dominates the viewport; project
+   metadata moves into a compact horizontal header/footer.
    ============================================================ */
 
-/* ---- Layout: give the content room ---- */
+:root {
+  --ink: #1f2328;
+  --muted: #667085;
+  --line: #d8dee4;
+  --soft: #f6f8fa;
+  --accent: #2676b8;
+  --accent-dark: #175a91;
+  --max: 1320px;
+  --reading: 1040px;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.72;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto,
+    Helvetica, Arial, sans-serif;
+}
 
 .wrapper {
-  width: 92%;
-  max-width: 1280px;
+  width: min(calc(100% - 48px), var(--max));
+  max-width: none;
   margin: 0 auto;
 }
 
+/* ---- Header: replace the left sidebar with a horizontal project bar ---- */
+
 header {
-  width: 250px;
+  float: none;
+  position: static;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 26px 0 22px;
+  border-bottom: 1px solid var(--line);
 }
+
+header h1,
+header .view,
+header > p {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+header h1 {
+  margin: 0 28px 0 0;
+  font-size: 23px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+header p {
+  margin: 0 26px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+header .view {
+  margin: 0;
+  float: right;
+}
+
+header .view a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+header .view a:hover {
+  border-color: #b8c6d3;
+  color: var(--accent-dark);
+  background: var(--soft);
+}
+
+/* ---- Main content: let the article use the page ---- */
 
 section {
-  width: calc(100% - 290px);
-  max-width: 940px;
-  float: right;
-  padding-bottom: 50px;
+  float: none;
+  width: 100%;
+  max-width: var(--reading);
+  margin: 0 auto;
+  padding: 42px 0 70px;
 }
 
-/* ---- Typography: larger, darker, more readable ---- */
+/* ---- Article hero ---- */
 
-body {
-  font-size: 16.5px;
-  line-height: 1.75;
-  color: #1f2328;
+section > h1:first-child {
+  margin: 0 0 12px;
+  max-width: 900px;
+  font-size: clamp(34px, 4vw, 52px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
 }
 
-h1 { font-size: 30px; line-height: 1.25; }
-h2 { font-size: 22px; line-height: 1.35; margin-top: 2.2em; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }
-h3 { font-size: 17.5px; margin-top: 1.8em; }
-h4, h5, h6 { margin-top: 1.5em; }
+section > h1:first-child + blockquote {
+  margin: 0 0 34px;
+  padding: 14px 18px;
+  border-left: 3px solid var(--accent);
+  background: linear-gradient(90deg, #f7fafc, #ffffff);
+  color: #4b5563;
+  font-size: 14px;
+}
 
-p, li { margin-bottom: .9em; }
+/* ---- ToC: compact navigation instead of a tall sidebar-like block ---- */
 
-strong { color: #0d1117; }
+#table-of-contents {
+  margin: 34px 0 46px;
+  padding: 20px 22px 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfcfd;
+}
 
-img { max-width: 100%; }
+#table-of-contents + ol,
+#table-of-contents ~ ol {
+  margin-top: 0;
+}
 
-/* ---- Code blocks ---- */
+/* GitHub/Jekyll produces the ToC as a following list. */
+section > h2:first-of-type + ol {
+  columns: 2;
+  column-gap: 36px;
+  margin: 0 0 46px;
+  padding-left: 24px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+section > h2:first-of-type + ol li {
+  break-inside: avoid;
+  margin: 0 0 5px;
+  padding-right: 12px;
+}
+
+section > h2:first-of-type + ol ol {
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+/* ---- Headings ---- */
+
+h2 {
+  margin-top: 2.8em;
+  margin-bottom: 0.8em;
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid var(--line);
+  font-size: 28px;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+h3 {
+  margin-top: 2em;
+  font-size: 19px;
+  line-height: 1.35;
+}
+
+h4, h5, h6 { margin-top: 1.6em; }
+
+p, li { margin-bottom: 0.95em; }
+
+strong { color: #111827; }
+
+a { color: var(--accent); }
+a:hover { color: var(--accent-dark); }
+
+/* ---- Images / architecture diagrams ---- */
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 22px auto;
+}
+
+/* ---- Code: stronger visual hierarchy ---- */
 
 pre {
+  margin: 20px 0 24px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 9px;
+  background: #f6f8fa;
   font-size: 13px;
   line-height: 1.55;
-  padding: 14px 16px;
-  border-radius: 8px;
-  overflow-x: auto;
-  background: #f6f8fa;
 }
 
 code { font-size: 0.88em; }
 
-/* ---- Tables (score history, time breakdown, decisions) ---- */
+/* ---- Tables: use full article width, not the sidebar proportions ---- */
 
 table {
-  display: block;
   width: 100%;
-  overflow-x: auto;
-  font-size: 14.5px;
+  margin: 22px 0 30px;
+  border-collapse: collapse;
+  font-size: 14px;
 }
 
-th, td { padding: 8px 14px; }
+th, td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
 
-/* ---- Blockquotes ---- */
+th {
+  color: #475467;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+tr:hover td { background: #fafbfc; }
+
+/* ---- Quotes / callouts ---- */
 
 blockquote {
   color: #57606a;
-  border-left: 3px solid #d0d7de;
+  border-left: 3px solid #c8d1da;
 }
 
-/* ---- Small screens: stack header above content like stock theme ---- */
+/* ---- Footer: repeat project identity here, not in a side rail ---- */
+
+footer,
+.footer {
+  width: 100%;
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 22px 0 30px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ---- Mobile ---- */
 
 @media (max-width: 960px) {
-  header,
-  section {
-    float: none;
-    position: static;
-    width: 100%;
-    max-width: none;
+  .wrapper {
+    width: min(calc(100% - 32px), var(--max));
   }
 
-  header { padding-bottom: 20px; }
+  header .view {
+    float: none;
+    display: inline-block;
+    margin-top: 8px;
+  }
+
+  section {
+    padding-top: 30px;
+  }
+
+  section > h2:first-of-type + ol {
+    columns: 1;
+  }
+
+  h2 { font-size: 24px; }
+  table { display: block; overflow-x: auto; }
 }
